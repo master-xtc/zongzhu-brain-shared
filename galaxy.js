@@ -58,8 +58,10 @@
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
   let W = 0, H = 0, DPR = 1;
-  function resize() { DPR = Math.min(2, window.devicePixelRatio || 1); W = wrap.clientWidth; H = wrap.clientHeight; canvas.width = W * DPR; canvas.height = H * DPR; canvas.style.width = W + 'px'; canvas.style.height = H + 'px'; ctx.setTransform(DPR, 0, 0, DPR, 0, 0); }
+  function resize() { DPR = Math.min(2, window.devicePixelRatio || 1); W = wrap.clientWidth; H = wrap.clientHeight; canvas.width = Math.max(1, W * DPR); canvas.height = Math.max(1, H * DPR); canvas.style.width = W + 'px'; canvas.style.height = H + 'px'; ctx.setTransform(DPR, 0, 0, DPR, 0, 0); }
   window.addEventListener('resize', resize); resize();
+  // 首屏布局未稳定导致 0 尺寸时，下一帧重试一次，避免 Canvas 兜底空画布
+  if (W < 10 || H < 10) requestAnimationFrame(resize);
 
   // 3D 状态
   const view = { ry: 0.5, rx: -0.25, scale: 0.9, focus: null };

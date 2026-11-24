@@ -30,7 +30,7 @@
   const { THREE } = T3;
   const { OrbitControls, EffectComposer, RenderPass, UnrealBloomPass, OutputPass } = T3.mods;
   if (tag) tag.textContent = '引擎：Three.js 3D 星系（插件级）';
-  window.__GALAXY_3D = true; // 停止 canvas 兜底渲染
+  // 暂不接管：等渲染器/场景/首帧全部就绪后再置 __GALAXY_3D；任一环节失败由底部 catch 回退 Canvas
 
   // ---- 数据 ----
   const NODES = KBG.nodes.map(n => Object.assign({}, n));
@@ -279,5 +279,13 @@
   resize();
   buildComposer();
   renderer.setClearColor(0x0A0A0F, 1);
+  window.__GALAXY_3D = true; // 渲染器/场景/首帧全部就绪，正式接管，停止 Canvas 兜底
   animate();
-})();
+})().catch(e => {
+  window.__GALAXY_3D = false; // 3D 初始化任一环节失败，交还 Canvas 兜底，避免图谱白屏
+  const t = document.getElementById('engineTag');
+  if (t) t.textContent = '引擎：Canvas 兜底（3D 初始化失败）';
+  const c = document.getElementById('galaxy3d');
+  if (c) c.innerHTML = '';
+  console.error('[galaxy3d] 初始化失败，已回退 Canvas：', e);
+});
