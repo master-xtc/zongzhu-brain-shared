@@ -4,6 +4,7 @@
  */
 (function () {
   if (!window.KB || !window.KB.graph) return;
+  const esc = window.esc || ((s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'));
   const G = window.KB.graph;
   const NODES = G.nodes.map(n => Object.assign({}, n));
   const LINKS = G.links;
@@ -219,7 +220,7 @@
     const src = n.cat === '能力' ? (KB.capabilities.find(c => c.id === n.id)) : n.cat === '知识' ? KB.knowledge.find(k => k.id === n.id) : n.cat === '项目' ? KB.projects.find(p => p.id === n.id) : n.cat === '员工' ? KB.employees.find(e => e.id === n.id) : n.cat === '规则' ? KB.rules.find(r => r.id === n.id) : n.cat === '需求' ? (KB.requirements || []).find(r => r.id === n.id) : null;
     const body = src ? (src.content || src.detail || src.progress || src.role || src.use || '') : '';
     detail.style.display = 'block';
-    detail.innerHTML = `<h3>${n.label}</h3><p>${body || '（无详情，点击空白处关闭）'}</p><div style="margin-top:8px">${[`度中心性 ${n.deg}`, n.hub ? '枢纽节点' : '', n.orphan ? '孤儿节点' : ''].filter(Boolean).map(x => `<span class="tag">${x}</span>`).join('')}</div>`;
+    detail.innerHTML = `<h3>${esc(n.label)}</h3><p>${esc(body) || '（无详情，点击空白处关闭）'}</p><div style="margin-top:8px">${[`度中心性 ${n.deg}`, n.hub ? '枢纽节点' : '', n.orphan ? '孤儿节点' : ''].filter(Boolean).map(x => `<span class="tag">${x}</span>`).join('')}</div>`;
   }
 
   // ---- 控制面板绑定 ----
@@ -303,14 +304,14 @@
   // 连接两篇
   const selA = document.getElementById('selNodeA'), selB = document.getElementById('selNodeB');
   const labelOpts = NODES.filter(n => n.id !== 'ROOT' && n.id !== 'HUMAN').map(n => n.label);
-  if (selA) { selA.innerHTML = labelOpts.map(l => `<option>${l}</option>`).join(''); selB.innerHTML = labelOpts.map(l => `<option>${l}</option>`).join(''); }
+  if (selA) { selA.innerHTML = labelOpts.map(l => `<option>${esc(l)}</option>`).join(''); selB.innerHTML = labelOpts.map(l => `<option>${esc(l)}</option>`).join(''); }
   $('#btnPath')?.addEventListener('click', () => {
     const a = NODES.find(n => n.label === selA.value), b = NODES.find(n => n.label === selB.value);
     if (!a || !b) return;
     const path = shortestPath(a.id, b.id);
-    if (!path) out(`「${a.label}」与「${b.label}」之间无路径——知识断层，建议建立桥接笔记。`);
+    if (!path) out(`「${esc(a.label)}」与「${esc(b.label)}」之间无路径——知识断层，建议建立桥接笔记。`);
     else {
-      const labels = path.map(id => byId[id]?.label || id);
+      const labels = path.map(id => esc(byId[id]?.label || id));
       out(`最短路径（${labels.length - 1} 跳）：${labels.join(' → ')}${labels.length - 1 > 5 ? '<br><b style="color:var(--red)">⚠ 路径超过 5 跳，存在知识断层风险，建议补桥接节点。</b>' : ''}`);
       view.focus = null;
     }
@@ -325,12 +326,12 @@
     let gap = '未检测';
     if (sorted.length > 1) {
       const p = shortestPath(sorted[0].id, sorted[1].id);
-      gap = p ? `${p.length - 1} 跳（${byId[p[0]]?.label} → ${byId[p[p.length - 1]]?.label}）` : '无路径';
+      gap = p ? `${p.length - 1} 跳（${esc(byId[p[0]]?.label)} → ${esc(byId[p[p.length - 1]]?.label)}）` : '无路径';
     }
     const warn = [];
     if (orph.length > NODES.length * 0.1) warn.push(`孤儿笔记 ${orph.length} 个（>10%），建议归档或删除。`);
     if (brk.length) warn.push(`未解析链接 ${brk.length} 条，建议修复。`);
-    out(`<b>知识库健康巡检报告</b><br>规模：${NODES.length} 节点 / ${LINKS.length} 链接<br>Top5 枢纽：${top5.join('、')}<br>断层扫描：${gap}${(gap === '无路径' || (typeof gap === 'string' && /^\d+ 跳/.test(gap) && parseInt(gap) > 5)) ? ' <b style="color:var(--red)">⚠ 建议建立桥接笔记</b>' : ''}<br>孤儿：${orph.length} 个${orph.length ? '（' + orph.map(x => x.label).join('、') + '）' : ''}<br>断链：${brk.length} 条<br>${warn.length ? '<b style="color:var(--red)">预警：' + warn.join('') + '</b>' : '状态良好，无需清理。'}`);
+    out(`<b>知识库健康巡检报告</b><br>规模：${NODES.length} 节点 / ${LINKS.length} 链接<br>Top5 枢纽：${top5.map(esc).join('、')}<br>断层扫描：${gap}${(gap === '无路径' || (typeof gap === 'string' && /^\d+ 跳/.test(gap) && parseInt(gap) > 5)) ? ' <b style="color:var(--red)">⚠ 建议建立桥接笔记</b>' : ''}<br>孤儿：${orph.length} 个${orph.length ? '（' + orph.map(x => esc(x.label)).join('、') + '）' : ''}<br>断链：${brk.length} 条<br>${warn.length ? '<b style="color:var(--red)">预警：' + warn.join('') + '</b>' : '状态良好，无需清理。'}`);
   });
 
   // 指令响应演示（关键词 → 动作）
@@ -347,7 +348,7 @@
     if (cmd.includes('检查') || cmd.includes('巡检') || cmd.includes('健康')) { $('#btnHealth')?.click(); return; }
     if (aIdx && selA && selB) {
       const name = aIdx[1].trim(); const n = NODES.find(x => x.label.includes(name));
-      if (n) { selA.value = n.label; const b = NODES.find(x => x.id !== n.id); if (b) selB.value = b.label; $('#btnPath')?.click(); msgs.unshift(`已连接两篇：${n.label} ↔ ${selB.value}`); }
+      if (n) { selA.value = n.label; const b = NODES.find(x => x.id !== n.id); if (b) selB.value = b.label; $('#btnPath')?.click(); msgs.unshift(`已连接两篇：${esc(n.label)} ↔ ${esc(selB.value)}`); }
     }
     out(msgs.length ? msgs.join('；') : '未识别指令。试试：「银河效果」「螺旋」「检查我的知识库结构」「连接两篇：XXX」');
   });

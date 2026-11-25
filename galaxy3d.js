@@ -5,6 +5,7 @@
 (async () => {
   const KBG = window.KB && window.KB.graph;
   if (!KBG) return;
+  const esc = window.esc || ((s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'));
 
   async function loadThree() {
     // 依赖页面 <script type="importmap"> 将 three / three/addons/ 映射到 jsdelivr CDN
@@ -217,7 +218,7 @@
       const src = n.cat === '能力' ? KB.capabilities.find(c => c.id === n.id) : n.cat === '知识' ? KB.knowledge.find(k => k.id === n.id) : n.cat === '项目' ? KB.projects.find(p => p.id === n.id) : n.cat === '员工' ? KB.employees.find(e => e.id === n.id) : n.cat === '规则' ? KB.rules.find(r => r.id === n.id) : n.cat === '需求' ? (KB.requirements || []).find(r => r.id === n.id) : null;
       const body = src ? (src.content || src.detail || src.progress || src.role || src.use || '') : '';
       detail.style.display = 'block';
-      detail.innerHTML = '<h3>' + n.label + '</h3><p>' + (body || '（无详情，点击空白处关闭）') + '</p><div style="margin-top:8px">' + ['度中心性 ' + n.deg, n.hub ? '枢纽节点' : '', n.orphan ? '孤儿节点' : ''].filter(Boolean).map(x => '<span class="tag">' + x + '</span>').join('') + '</div>';
+      detail.innerHTML = '<h3>' + esc(n.label) + '</h3><p>' + (esc(body) || '（无详情，点击空白处关闭）') + '</p><div style="margin-top:8px">' + ['度中心性 ' + n.deg, n.hub ? '枢纽节点' : '', n.orphan ? '孤儿节点' : ''].filter(Boolean).map(x => '<span class="tag">' + x + '</span>').join('') + '</div>';
     }
   });
   function applyFocus() {
